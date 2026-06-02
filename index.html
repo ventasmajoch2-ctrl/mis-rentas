@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rent-A-Car Control</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --apple-blue: #0071e3;
+            --apple-bg: #f5f5f7;
+            --apple-card: #ffffff;
+            --apple-text: #1d1d1f;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--apple-bg);
+            color: var(--apple-text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container { width: 100%; max-width: 400px; }
+        h1, h2 { text-align: center; font-weight: 700; margin-bottom: 20px; }
+        .card {
+            background: var(--apple-card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        label { font-weight: 600; font-size: 14px; display: block; margin-top: 10px; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 6px 0 12px 0;
+            border: 1px solid #d2d2d7;
+            border-radius: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background-color: #fafafa;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--apple-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:active { background-color: #005bb5; }
+        .btn-alert { background-color: #ff9500; margin-bottom: 10px; }
+        .renta-item {
+            border-bottom: 1px solid #e5e5ea;
+            padding: 12px 0;
+        }
+        .renta-item:last-child { border: none; }
+        .alerta-activa { color: #ff3b30; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔑 Rent-A-Car App</h1>
+    
+    <button class="btn-alert" onclick="solicitarPermisoNotificaciones()">🔔 Activar Alertas en iPhone</button>
+    
+    <div class="card">
+        <h2>Nuevo Alquiler</h2>
+        <form id="rentaForm">
+            <label>Vehículo / Placa:</label>
+            <input type="text" id="vehiculo" placeholder="Toyota Corolla - M 1234" required>
+            
+            <label>Cantidad de Combustible:</label>
+            <select id="combustible">
+                <option>Lleno (4/4)</option>
+                <option>3/4 Tanque</option>
+                <option>1/2 Tanque</option>
+                <option>1/4 Tanque</option>
+                <option>Reserva</option>
+            </select>
+            
+            <label>Precio por Día ($):</label>
+            <input type="number" id="precioDia" placeholder="45" required>
+            
+            <label>Días de Alquiler:</label>
+            <input type="number" id="dias" placeholder="3" required>
+            
+            <label>Hora de Salida (Automática):</label>
+            <input type="text" id="horaSalida" readonly>
+            
+            <label>Hora Manual de Entrega/Devolución:</label>
+            <input type="datetime-local" id="horaEntrega" required>
+            
+            <button type="submit">Guardar Registro</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Vehículos Alquilados</h2>
+        <div id="listaRentas"></div>
+    </div>
+</div>
+
+<script>
+    // Colocar hora de salida actual automáticamente
+    const ahora = new Date();
+    document.getElementById('horaSalida').value = ahora.toLocaleString();
+
+    // Cargar rentas guardadas
+    let rentas = JSON.parse(localStorage.getItem('rentas')) || [];
+
+    // Pedir permiso para notificaciones en el iPhone
+    func
+    function solicitarPermisoNotificaciones() {
+        Notification.requestPermission().then(perm => {
+            if (perm === 'granted') alert('¡Alertas activadas con éxito!');
+        });
+    }
+
+    // Guardar nuevo alquiler
+    document.getElementById('rentaForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const nuevoAlquiler = {
+            id: Date.now(),
+            vehiculo: document.getElementById('vehiculo').value,
+            combustible: document.getElementById('combustible').value,
+            precioTotal: document.getElementById('precioDia').value * document.getElementById('dias').value,
+            dias: document.getElementById('dias').value,
+            salida: document.getElementById('horaSalida').value,
+            entrega: document.getElementById('horaEntrega').value, // Formato: YYYY-MM-DDTHH:MM
+            notificado: false
+        };
+
+        rentas.push(nuevoAlquiler);
+        localStorage.setItem('rentas', JSON.stringify(rentas));
+        this.reset();
+        document.getElementById('horaSalida').value = new Date().toLocaleString();
+        mostrarRentas();
+    });
+
+    // Mostrar las rentas en pantalla
+    function mostrarRentas() {
+        const contenedor = document.getElementById('listaRentas');
+        contenedor.innerHTML = '';
+        
+        if(rentas.length === 0) {
+            contenedor.innerHTML = '<p style="text-align:center; color:#8e8e93;">No hay autos alquilados.</p>';
+            return;
+        }
+
+        rentas.forEach(r => {
+            const fechaEntregaFormateada = new Date(r.entrega).toLocaleString();
+            const div = document.createElement('div');
+            div.className = 'renta-item';
+            div.innerHTML = `
+                <strong>🚗 ${r.vehiculo}</strong><br>
+                <span>⏱️ Días: ${r.dias} | Total: $${r.precioTotal}</span><br>
+                <span>⛽ Gas: ${r.combustible}</span><br>
+                <span>📅 Entrega: <span class="alerta-activa">${fechaEntregaFormateada}</span></span><br>
+                <button onclick="eliminarRenta(${r.id})" style="padding:5px 10px; font-size:12px; background:#ff3b30; width:auto; margin-top:5px;">Devuelto / Borrar</button>
+            `;
+            contenedor.appendChild(div);
+        });
+    }
+
+    function eliminarRenta(id) {
+        rentas = rentas.filter(r => r.id !== id);
+        localStorage.setItem('rentas', JSON.stringify(rentas));
+        mostrarRentas();
+    }
+
+    // SISTEMA DE ALERTA EN TIEMPO REAL
+    setInterval(() => {
+        const ahora_ms = new Date().getTime();
+        let cambio = false;
+
+        rentas.forEach(r => {
+            const tiempoEntrega_ms = new Date(r.entrega).getTime();
+            // Si ya llegó la hora y no ha sido notificado
+            if (ahora_ms >= tiempoEntrega_ms && !r.notificado) {
+                r.notificado = true;
+                cambio = true;
+                
+                // Alerta nativa en pantalla
+                alert(`⚠️ ¡HORA DE ENTREGA! El vehículo ${r.vehiculo} debe ser devuelto ahora.`);
+                
+                // Notificación push de fondo (si el celular lo permite)
+                if (Notification.permission === 'granted') {
+                    new Notification("🚨 Alerta de Entrega", {
+                        body: `El vehículo ${r.vehiculo} cumplió su tiempo de alquiler.`
+                    });
+                }
+            }
+        });
+
+        if (cambio) {
+            localStorage.setItem('rentas', JSON.stringify(rentas));
+        }
+    }, 30000); // Revisa cada 30 segundos
+
+    // Inicializar app
+    mostrarRentas();
+
+    // Registrar el Service Worker (necesario para PWA)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+</script>
+</body>
+</html>
