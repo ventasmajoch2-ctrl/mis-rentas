@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Rent-A-Car Control</title>
+    <title>Rent-A-Car Premium</title>
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
@@ -11,209 +11,435 @@
             --apple-bg: #f5f5f7;
             --apple-card: #ffffff;
             --apple-text: #1d1d1f;
+            --color-ok: #34c759;
+            --color-alerta: #ff9500;
+            --color-peligro: #ff3b30;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--apple-bg);
             color: var(--apple-text);
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        .container { width: 100%; max-width: 400px; }
-        h1, h2 { text-align: center; font-weight: 700; margin-bottom: 20px; }
+        .container { width: 100%; max-width: 450px; }
+        h1, h2, h3 { text-align: center; font-weight: 700; margin: 10px 0; }
         .card {
             background: var(--apple-card);
-            padding: 20px;
+            padding: 15px;
             border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            margin-bottom: 15px;
             box-sizing: border-box;
         }
-        label { font-weight: 600; font-size: 14px; display: block; margin-top: 10px; }
-        input, select {
+        label { font-weight: 600; font-size: 13px; display: block; margin-top: 8px; }
+        input, select, textarea {
             width: 100%;
-            padding: 12px;
-            margin: 6px 0 12px 0;
+            padding: 10px;
+            margin: 4px 0 10px 0;
             border: 1px solid #d2d2d7;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 15px;
             box-sizing: border-box;
-            background-color: #fafafa;
+            font-family: inherit;
         }
+        textarea { resize: none; height: 60px; }
         button {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background-color: var(--apple-blue);
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
         }
-        button:active { background-color: #005bb5; }
-        .btn-alert { background-color: #ff9500; margin-bottom: 10px; }
+        .btn-secundario { background-color: #8e8e93; margin-top: 5px; }
+        .btn-alerta-top { background-color: var(--color-alerta); margin-bottom: 15px; }
+        
+        /* ESTADOS POR COLORES */
         .renta-item {
-            border-bottom: 1px solid #e5e5ea;
-            padding: 12px 0;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 6px solid #ccc;
+            background: #fafafa;
         }
-        .renta-item:last-child { border: none; }
-        .alerta-activa { color: #ff3b30; font-weight: bold; }
+        .estado-ok { border-left-color: var(--color-ok); }
+        .estado-advertencia { border-left-color: var(--color-alerta); background: #fff9e6; }
+        .estado-retrasado { border-left-color: var(--color-peligro); background: #ffebeb; animation: parpadeo 2s infinite; }
+        
+        @keyframes parpadeo {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .tabs { display: flex; justify-content: space-around; margin-bottom: 15px; }
+        .tab-btn { background: #e5e5ea; color: #1d1d1f; width: auto; padding: 8px 12px; font-size: 13px; border-radius: 8px; }
+        .tab-btn.activo { background: var(--apple-blue); color: white; }
+        .seccion-tab { display: none; }
+        .seccion-tab.activa { display: block; }
+        
+        .auto-linea { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e5e5ea; }
+        .detalles-observacion { font-size: 12px; color: #555; background: #eee; padding: 4px 8px; border-radius: 4px; margin-top: 4px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🔑 Rent-A-Car App</h1>
-    
-    <button class="btn-alert" onclick="solicitarPermisoNotificaciones()">🔔 Activar Alertas en iPhone</button>
-    
-    <div class="card">
-        <h2>Nuevo Alquiler</h2>
-        <form id="rentaForm">
-            <label>Vehículo / Placa:</label>
-            <input type="text" id="vehiculo" placeholder="Toyota Corolla - M 1234" required>
-            
-            <label>Cantidad de Combustible:</label>
-            <select id="combustible">
-                <option>Lleno (4/4)</option>
-                <option>3/4 Tanque</option>
-                <option>1/2 Tanque</option>
-                <option>1/4 Tanque</option>
-                <option>Reserva</option>
-            </select>
-            
-            <label>Precio por Día ($):</label>
-            <input type="number" id="precioDia" placeholder="45" required>
-            
-            <label>Días de Alquiler:</label>
-            <input type="number" id="dias" placeholder="3" required>
-            
-            <label>Hora de Salida (Automática):</label>
-            <input type="text" id="horaSalida" readonly>
-            
-            <label>Hora Manual de Entrega/Devolución:</label>
-            <input type="datetime-local" id="horaEntrega" required>
-            
-            <button type="submit">Guardar Registro</button>
-        </form>
+    <h1>🔑 Rent-A-Car Premium</h1>
+    <button class="btn-alerta-top" onclick="solicitarPermisoNotificaciones()">🔔 Activar Notificaciones iPhone</button>
+
+    <!-- MENÚ DE PESTAÑAS -->
+    <div class="tabs">
+        <button class="tab-btn activo" onclick="cambiarTab('tab-rentas')">📋 Rentas</button>
+        <button class="tab-btn" onclick="cambiarTab('tab-autos')">🚘 Mi Flota</button>
+        <button class="tab-btn" onclick="cambiarTab('tab-balance')">📊 Balance</button>
+        <button class="tab-btn" onclick="cambiarTab('tab-config')">⚙️ Ajustes</button>
     </div>
 
-    <div class="card">
-        <h2>Vehículos Alquilados</h2>
-        <div id="listaRentas"></div>
+    <!-- PESTAÑA 1: CONTROL DE RENTAS -->
+    <div id="tab-rentas" class="seccion-tab activa">
+        <div class="card">
+            <h2>Nuevo Alquiler</h2>
+            <form id="rentaForm">
+                <label>Seleccionar Vehículo:</label>
+                <select id="selectVehiculo" required></select>
+                
+                <label>Nombre del Cliente:</label>
+                <input type="text" id="cliente" placeholder="Juan Pérez" required>
+                
+                <label>Combustible:</label>
+                <select id="combustible">
+                    <option>Lleno (4/4)</option>
+                    <option>3/4 Tanque</option>
+                    <option>1/2 Tanque</option>
+                    <option>1/4 Tanque</option>
+                    <option>Reserva</option>
+                </select>
+                
+                <label>Precio por Día ($):</label>
+                <input type="number" id="precioDia" placeholder="45" required>
+                
+                <label>Días de Alquiler:</label>
+                <input type="number" id="dias" placeholder="3" required>
+                
+                <label>Hora Programada de Entrega:</label>
+                <input type="datetime-local" id="horaEntrega" required>
+
+                <!-- FUNCIÓN 1: DAÑOS / OBSERVACIONES -->
+                <label>Estado del Auto / Detalles / Daños:</label>
+                <textarea id="observaciones" placeholder="Ej: Rayón leve en puerta trasera izquierda, limpio 100%..."></textarea>
+                
+                <button type="submit">Registrar Alquiler</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Vehículos Alquiler Activo</h2>
+            <div id="listaRentas"></div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: GESTIÓN DE AUTOS -->
+    <div id="tab-autos" class="seccion-tab">
+        <div class="card">
+            <h2 id="tituloAutos">Añadir Vehículo a la Flota</h2>
+            <form id="autoForm">
+                <input type="hidden" id="editAutoId">
+                <label>Modelo / Nombre:</label>
+                <input type="text" id="autoModelo" placeholder="Toyota Yaris" required>
+                <label>Número de Placa:</label>
+                <input type="text" id="autoPlaca" placeholder="46854" required>
+                <button type="submit" id="btnGuardarAuto">Agregar Vehículo</button>
+                <button type="button" class="btn-secundario" id="btnCancelarEdicion" style="display:none;" onclick="cancelarEdicionAuto()">Cancelar Edición</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Autos en la Flota</h2>
+            <div id="listaAutos"></div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 3: BALANCE Y GANANCIAS -->
+    <div id="tab-balance" class="seccion-tab">
+        <div class="card" style="text-align: center;">
+            <h2>Ganancias Registradas</h2>
+            <p style="font-size: 14px; color: #8e8e93;">Corte Mensual Actual</p>
+            <h3 id="gananciasMes" style="font-size: 32px; color: var(--color-ok); margin: 10px 0;">$0.00</h3>
+        </div>
+        <div class="card">
+            <h2>Historial de Alquileres Cerrados</h2>
+            <div id="listaHistorial"></div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 4: AJUSTES / CONFIGURACIÓN DE MULTAS -->
+    <div id="tab-config" class="seccion-tab">
+        <div class="card">
+            <h2>Configuración del Negocio</h2>
+            <label>Multa por Hora de Retraso ($):</label>
+            <input type="number" id="multaHora" placeholder="10">
+            <button onclick="guardarConfiguracion()">Guardar Ajustes</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // Colocar hora de salida actual automáticamente
-    const ahora = new Date();
-    document.getElementById('horaSalida').value = ahora.toLocaleString();
-
-    // Cargar rentas guardadas
+    let autos = JSON.parse(localStorage.getItem('autos')) || [];
     let rentas = JSON.parse(localStorage.getItem('rentas')) || [];
+    let historial = JSON.parse(localStorage.getItem('historial')) || [];
+    let multaPorHora = localStorage.getItem('multaHora') || "10"; // $10 por defecto
 
-    // Pedir permiso para notificaciones en el iPhone
-    func
-    function solicitarPermisoNotificaciones() {
-        Notification.requestPermission().then(perm => {
-            if (perm === 'granted') alert('¡Alertas activadas con éxito!');
-        });
+    document.getElementById('multaHora').value = multaPorHora;
+
+    function cambiarTab(tabId) {
+        document.querySelectorAll('.seccion-tab').forEach(s => s.classList.remove('activa'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+        document.getElementById(tabId).classList.add('activa');
+        if(event) event.target.classList.add('activo');
+        actualizarSelectAutos();
     }
 
-    // Guardar nuevo alquiler
-    document.getElementById('rentaForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const nuevoAlquiler = {
-            id: Date.now(),
-            vehiculo: document.getElementById('vehiculo').value,
-            combustible: document.getElementById('combustible').value,
-            precioTotal: document.getElementById('precioDia').value * document.getElementById('dias').value,
-            dias: document.getElementById('dias').value,
-            salida: document.getElementById('horaSalida').value,
-            entrega: document.getElementById('horaEntrega').value, // Formato: YYYY-MM-DDTHH:MM
-            notificado: false
-        };
+    function solicitarPermisoNotificaciones() {
+        Notification.requestPermission().then(p => { if (p === 'granted') alert('¡Alertas configuradas!'); });
+    }
 
-        rentas.push(nuevoAlquiler);
-        localStorage.setItem('rentas', JSON.stringify(rentas));
+    function guardarConfiguracion() {
+        multaPorHora = document.getElementById('multaHora').value;
+        localStorage.setItem('multaHora', multaPorHora);
+        alert("Configuración guardada.");
+    }
+
+    // --- GESTIÓN DE AUTOS ---
+    document.getElementById('autoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('editAutoId').value;
+        const modelo = document.getElementById('autoModelo').value.trim();
+        const placa = document.getElementById('autoPlaca').value.toUpperCase().trim();
+
+        if (id) {
+            autos = autos.map(a => a.id == id ? { id: Number(id), modelo, placa } : a);
+            cancelarEdicionAuto();
+        } else {
+            autos.push({ id: Date.now(), modelo, placa });
+        }
+        
+        localStorage.setItem('autos', JSON.stringify(autos));
         this.reset();
-        document.getElementById('horaSalida').value = new Date().toLocaleString();
-        mostrarRentas();
+        mostrarAutos();
+        actualizarSelectAutos();
     });
 
-    // Mostrar las rentas en pantalla
-    function mostrarRentas() {
-        const contenedor = document.getElementById('listaRentas');
+    function mostrarAutos() {
+        const contenedor = document.getElementById('listaAutos');
         contenedor.innerHTML = '';
+        if(autos.length === 0) { contenedor.innerHTML = '<p style="text-align:center;color:#8e8e93;">No hay autos registrados.</p>'; return; }
         
-        if(rentas.length === 0) {
-            contenedor.innerHTML = '<p style="text-align:center; color:#8e8e93;">No hay autos alquilados.</p>';
-            return;
-        }
-
-        rentas.forEach(r => {
-            const fechaEntregaFormateada = new Date(r.entrega).toLocaleString();
+        autos.forEach(a => {
             const div = document.createElement('div');
-            div.className = 'renta-item';
+            div.className = 'auto-linea';
             div.innerHTML = `
-                <strong>🚗 ${r.vehiculo}</strong><br>
-                <span>⏱️ Días: ${r.dias} | Total: $${r.precioTotal}</span><br>
-                <span>⛽ Gas: ${r.combustible}</span><br>
-                <span>📅 Entrega: <span class="alerta-activa">${fechaEntregaFormateada}</span></span><br>
-                <button onclick="eliminarRenta(${r.id})" style="padding:5px 10px; font-size:12px; background:#ff3b30; width:auto; margin-top:5px;">Devuelto / Borrar</button>
+                <div><strong>${a.modelo}</strong> <span style="color:#666;">(${a.placa})</span></div>
+                <div>
+                    <button onclick="editarAuto(${a.id})" style="padding:4px 8px; font-size:12px; width:auto; background:#0071e3;">✏️</button>
+                    <button onclick="eliminarAuto(${a.id})" style="padding:4px 8px; font-size:12px; width:auto; background:#ff3b30;">🗑️</button>
+                </div>
             `;
             contenedor.appendChild(div);
         });
     }
 
-    function eliminarRenta(id) {
-        rentas = rentas.filter(r => r.id !== id);
-        localStorage.setItem('rentas', JSON.stringify(rentas));
-        mostrarRentas();
+    function editarAuto(id) {
+        const auto = autos.find(a => a.id === id);
+        if (!auto) return;
+        document.getElementById('editAutoId').value = auto.id;
+        document.getElementById('autoModelo').value = auto.modelo;
+        document.getElementById('autoPlaca').value = auto.placa;
+        document.getElementById('tituloAutos').innerText = "Editar Vehículo";
+        document.getElementById('btnGuardarAuto').innerText = "Guardar Cambios";
+        document.getElementById('btnCancelarEdicion').style.display = "block";
     }
 
-    // SISTEMA DE ALERTA EN TIEMPO REAL
+    function cancelarEdicionAuto() {
+        document.getElementById('editAutoId').value = '';
+        document.getElementById('autoForm').reset();
+        document.getElementById('tituloAutos').innerText = "Añadir Vehículo a la Flota";
+        document.getElementById('btnGuardarAuto').innerText = "Agregar Vehículo";
+        document.getElementById('btnCancelarEdicion').style.display = "none";
+    }
+
+    function eliminarAuto(id) {
+        autos = autos.filter(a => a.id !== id);
+        localStorage.setItem('autos', JSON.stringify(autos));
+        mostrarAutos();
+        actualizarSelectAutos();
+    }
+
+    function actualizarSelectAutos() {
+        const select = document.getElementById('selectVehiculo');
+        if(!select) return;
+        select.innerHTML = '';
+        autos.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = `${a.modelo} (${a.placa})`;
+            opt.innerText = `${a.modelo} [${a.placa}]`;
+            select.appendChild(opt);
+        });
+    }
+
+    // --- GESTIÓN DE RENTAS ---
+    document.getElementById('rentaForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if(autos.length === 0) { alert("Primero debes añadir autos en la pestaña 'Mi Flota'"); return; }
+
+        const nuevaRenta = {
+            id: Date.now(),
+            vehiculo: document.getElementById('selectVehiculo').value,
+            cliente: document.getElementById('cliente').value,
+            combustible: document.getElementById('combustible').value,
+            precioBase: Number(document.getElementById('precioDia').value * document.getElementById('dias').value),
+            entrega: document.getElementById('horaEntrega').value,
+            observaciones: document.getElementById('observaciones').value || "Ninguna",
+            notificado: false
+        };
+
+        rentas.push(nuevaRenta);
+        localStorage.setItem('rentas', JSON.stringify(rentas));
+        this.reset();
+        mostrarRentas();
+    });
+
+    function mostrarRentas() {
+        const contenedor = document.getElementById('listaRentas');
+        contenedor.innerHTML = '';
+        if(rentas.length === 0) { contenedor.innerHTML = '<p style="text-align:center;color:#8e8e93;">No hay alquileres activos.</p>'; return; }
+
+        const ahora_ms = new Date().getTime();
+
+        rentas.forEach(r => {
+            const tiempoEntrega_ms = new Date(r.entrega).getTime();
+            const diferenciaHoras = (tiempoEntrega_ms - ahora_ms) / (1000 * 60 * 60);
+            
+            let claseEstado = 'estado-ok';
+            let textoEstado = '';
+            if (diferenciaHoras < 0) {
+                claseEstado = 'estado-retrasado';
+                textoEstado = ' ⚠️ RETRASADO';
+            } else if (diferenciaHoras <= 2) {
+                claseEstado = 'estado-advertencia';
+                textoEstado = ' ⏱️ Próximo a vencer';
+            }
+
+            const div = document.createElement('div');
+            div.className = `renta-item ${claseEstado}`;
+            div.innerHTML = `
+                <strong>條 ${r.vehiculo}${textoEstado}</strong><br>
+                <span>👤 Cliente: ${r.cliente}</span><br>
+                <span>💰 Alquiler Base: $${r.precioBase} | ⛽ Gas: ${r.combustible}</span><br>
+                <span>📅 Entrega: ${new Date(r.entrega).toLocaleString()}</span><br>
+                <div class="detalles-observacion">🔎 <strong>Detalles salida:</strong> ${r.observaciones}</div>
+                <button onclick="devolverVehiculo(${r.id})" style="padding:6px 12px; font-size:12px; background:var(--color-ok); width:auto; margin-top:8px;">✅ Procesar Devolución</button>
+            `;
+            contenedor.appendChild(div);
+        });
+    }
+
+    // FUNCIÓN 3: DEVOLUCIÓN CON CÁLCULO DE MULTA
+    function devolverVehiculo(id) {
+        const renta = rentas.find(r => r.id === id);
+        if(!renta) return;
+
+        const ahora = new Date();
+        const tiempoEntrega = new Date(renta.entrega);
+        let cargoRetraso = 0;
+        let horasRetraso = 0;
+
+        // Comprobar si hay retraso
+        if (ahora.getTime() > tiempoEntrega.getTime()) {
+            const diferenciaMs = ahora.getTime() - tiempoEntrega.getTime();
+            horasRetraso = Math.ceil(diferenciaMs / (1000 * 60 * 60)); // Redondea hacia arriba las horas retrasadas
+            cargoRetraso = horasRetraso * Number(multaPorHora);
+        }
+
+        const totalFinal = renta.precioBase + cargoRetraso;
+
+        // Mensaje de cobro detallado
+        let mensajeCobro = `Resumen de Cierre:\n\nCliente: ${renta.cliente}\nVehículo: ${renta.vehiculo}\nPrecio Base: $${renta.precioBase}\n`;
+        if (horasRetraso > 0) {
+            mensajeCobro += `⚠️ RETRASO: ${horasRetraso} hora(s)\n⚠️ CARGO MULTA: $${cargoRetraso}\n`;
+        }
+        mensajeCobro += `\nTOTAL NETO A COBRAR: $${totalFinal}`;
+        
+        alert(mensajeCobro);
+
+        // Guardar en el balance histórico
+        historial.push({
+            id: renta.id,
+            vehiculo: renta.vehiculo,
+            cliente: renta.cliente,
+            total: totalFinal,
+            fechaCierre: ahora.toLocaleDateString()
+        });
+        
+        localStorage.setItem('historial', JSON.stringify(historial));
+        rentas = rentas.filter(r => r.id !== id);
+        localStorage.setItem('rentas', JSON.stringify(rentas));
+        
+        mostrarRentas();
+        mostrarBalance();
+    }
+
+    function mostrarBalance() {
+        const contenedor = document.getElementById('listaHistorial');
+        contenedor.innerHTML = '';
+        let sumaTotal = 0;
+
+        historial.forEach(h => {
+            sumaTotal += Number(h.total);
+            const div = document.createElement('div');
+            div.className = 'auto-linea';
+            div.innerHTML = `
+                <div><strong>${h.vehiculo}</strong><br><small>User: ${h.cliente} - ${h.fechaCierre}</small></div>
+                <div style="color:var(--color-ok); font-weight:bold;">+$${h.total}</div>
+            `;
+            contenedor.appendChild(div);
+        });
+        document.getElementById('gananciasMes').innerText = `$${sumaTotal.toFixed(2)}`;
+    }
+
+    // Monitor en tiempo real
     setInterval(() => {
         const ahora_ms = new Date().getTime();
         let cambio = false;
 
         rentas.forEach(r => {
             const tiempoEntrega_ms = new Date(r.entrega).getTime();
-            // Si ya llegó la hora y no ha sido notificado
             if (ahora_ms >= tiempoEntrega_ms && !r.notificado) {
                 r.notificado = true;
                 cambio = true;
-                
-                // Alerta nativa en pantalla
-                alert(`⚠️ ¡HORA DE ENTREGA! El vehículo ${r.vehiculo} debe ser devuelto ahora.`);
-                
-                // Notificación push de fondo (si el celular lo permite)
+                alert(`🚨 ALERTA: El auto ${r.vehiculo} de ${r.cliente} está retrasado.`);
                 if (Notification.permission === 'granted') {
-                    new Notification("🚨 Alerta de Entrega", {
-                        body: `El vehículo ${r.vehiculo} cumplió su tiempo de alquiler.`
-                    });
+                    new Notification("⚠️ Entrega Vencida", { body: `${r.vehiculo} - Cliente: ${r.cliente}` });
                 }
             }
         });
+        if (cambio) { localStorage.setItem('rentas', JSON.stringify(rentas)); }
+        mostrarRentas(); 
+    }, 30000);
 
-        if (cambio) {
-            localStorage.setItem('rentas', JSON.stringify(rentas));
-        }
-    }, 30000); // Revisa cada 30 segundos
-
-    // Inicializar app
+    // Inicialización
+    mostrarAutos();
     mostrarRentas();
-
-    // Registrar el Service Worker (necesario para PWA)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
+    mostrarBalance();
+    actualizarSelectAutos();
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 </script>
 </body>
 </html>
